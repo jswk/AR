@@ -10,23 +10,26 @@ static int K1 = 2;
 static int K2 = 3;
 static int G = 3;
 
+static int world_rank;
+static int world_size;
+
 static int *cells;
 static int *prev_cells;
 
+static int *cells_left;
+static int *cells_right;
+
+static int size;
 static int segment_size;
 
-static int *get_neighbour_counts_offsets;
-
-void get_neighbour_counts(int ij, int *infected, int *ill, int *sum);
+void get_neighbour_counts(int i, int j, int *infected, int *ill, int *sum);
 
 int main(int argc, char** argv) {
     MPI_Init(NULL, NULL);
-    int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    srand(world_rank);
+    srand(1+world_rank);
 
     if (argc != 3) {
         if (world_rank == 0) {
@@ -36,7 +39,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int size = atoi(argv[1]);
+    size = atoi(argv[1]);
     int steps = atoi(argv[2]);
 
     segment_size = size / world_size;
@@ -49,63 +52,143 @@ int main(int argc, char** argv) {
         segment_size -= size - (start_offset + segment_size);
     }
 
-    prev_cells = (int*) malloc(sizeof(int)*size*segment_size);
-    cells = (int*) malloc(sizeof(int)*size*segment_size);
-
-    {
-        int offsets[] = {-1, 1, size-1, size, size+1, -size-1, -size, -size+1};
-        get_neighbour_counts_offsets = (int*) malloc(sizeof(offsets));
-        memcpy(get_neighbour_counts_offsets, offsets, sizeof(offsets));
+    cells_left  = (int*) malloc(sizeof(int)*size);
+    cells_right = (int*) malloc(sizeof(int)*size);
+    for (int i = 0; i < size; i++) {
+        cells_left[i]  = 0;
+        cells_right[i] = 0;
     }
+
+    prev_cells = (int*) malloc(sizeof(int)*size*segment_size);
+    cells      = (int*) malloc(sizeof(int)*size*segment_size);
 
     for (int i = 0; i < size * segment_size; i++) {
         prev_cells[i] = rand() % (Q+1);
         cells[i] = 0;
     }
 
-    for (int i = 1; i < segment_size - 1; i++) {
-        for (int j = 0; j < size; j++) {
-            int ij = i * size + j;
-            if (prev_cells[ij] == Q) {
-                cells[ij] = 0;
-            } else if (prev_cells[ij] == 0) {
-                int infected = 0;
-                int ill = 0;
-                int sum = 0;
-                get_neighbour_counts(ij, &infected, &ill, &sum);
-                cells[ij] = infected / K1 + ill / K2;
-            } else {
-                int infected = 0;
-                int ill = 0;
-                int sum = 0;
-                get_neighbour_counts(ij, &infected, &ill, &sum);
-                cells[ij] = sum / (infected + ill + 1) + G;
+    for (int step = 0; step < steps; step++) {
+        MPI_Request reqs[4];
+        MPI_Status stat;
+        if (world_rank != 0) {
+            MPI_Irecv(cells_left, size, MPI_INT, world_rank-1, step, MPI_COMM_WORLD, &reqs[0]);
+            MPI_Isend(prev_cells + 0, size, MPI_INT, world_rank-1, step, MPI_COMM_WORLD, &reqs[2]);
+        }
+        if (world_rank+1 != world_size) {
+            MPI_Irecv(cells_right, size, MPI_INT, world_rank+1, step, MPI_COMM_WORLD, &reqs[1]);
+            MPI_Isend(prev_cells + (segment_size-1)*size, size, MPI_INT, world_rank+1, step, MPI_COMM_WORLD, &reqs[3]);
+        }
+
+        if (world_rank != 0) {
+            MPI_Wait(&reqs[0], &stat);
+        }
+        if (world_rank+1 != world_size) {
+            MPI_Wait(&reqs[1], &stat);
+        }
+
+        for (int i = 0; i < segment_size; i++) {
+            for (int j = 0; j < size; j++) {
+                int ij = i * size + j;
+                if (prev_cells[ij] == Q) {
+                    cells[ij] = 0;
+                } else if (prev_cells[ij] == 0) {
+                    int infected = 0;
+                    int ill = 0;
+                    int sum = 0;
+                    get_neighbour_counts(i, j, &infected, &ill, &sum);
+                    cells[ij] = infected / K1 + ill / K2;
+                } else {
+                    int infected = 0;
+                    int ill = 0;
+                    int sum = prev_cells[ij];
+                    get_neighbour_counts(i, j, &infected, &ill, &sum);
+                    cells[ij] = sum / (infected + ill + 1) + G;
+                }
+                if (cells[ij] > 10) {
+                    cells[ij] = 10;
+                }
             }
         }
-    }
 
-    for (int i = 1; i < segment_size - 1; i++) {
-        for (int j = 0; j < size; j++) {
-            int ij = i * size + j;
-            printf("%d %d %d %d %d\n", world_rank, i, j, prev_cells[ij], cells[ij]);
+#ifdef DEBUG
+        for (int i = 0; i < segment_size; i++) {
+            for (int j = 0; j < size; j++) {
+                int ij = i * size + j;
+                printf("%d %d %d %d %d %d\n", step, world_rank, start_offset+i, j, prev_cells[ij], cells[ij]);
+            }
         }
+#endif
+
+        if (world_rank != 0) {
+            MPI_Wait(&reqs[2], &stat);
+        }
+        if (world_rank+1 != world_size) {
+            MPI_Wait(&reqs[3], &stat);
+        }
+
+        int *tmp_cells = prev_cells;
+        prev_cells = cells;
+        cells = tmp_cells;
     }
 
+    free(cells_left);
+    free(cells_right);
     free(cells);
     free(prev_cells);
-    free(get_neighbour_counts_offsets);
     MPI_Finalize();
     return 0;
 }
 
-void get_neighbour_counts(int ij, int *infected, int *ill, int *sum) {
-    for (int i = 0; i < 8; i++) {
-        int ij_neighbour = ij + get_neighbour_counts_offsets[i];
-        if (prev_cells[ij_neighbour] == Q) {
-            (*ill)++;
-        } else if (prev_cells[ij_neighbour] != 0) {
-            (*infected)++;
+inline static void get_neighbour_counts_update(int val, int *infected, int *ill, int *sum) {
+    if (val == Q) {
+        (*ill)++;
+    } else if (val != 0) {
+        (*infected)++;
+    }
+    *sum += val;
+}
+
+void get_neighbour_counts(int i, int j, int *infected, int *ill, int *sum) {
+    int *col;
+
+    // cells to the left
+    if (i != 0) {
+        col = prev_cells + (i-1)*size;
+    } else {
+        col = cells_left;
+    }
+    if (i != 0 || world_rank != 0) {
+        if (j != 0) {
+            get_neighbour_counts_update(col[j-1], infected, ill, sum);
         }
-        *sum += prev_cells[ij_neighbour];
+        get_neighbour_counts_update(col[j], infected, ill, sum);
+        if (j+1 != size) {
+            get_neighbour_counts_update(col[j+1], infected, ill, sum);
+        }
+    }
+
+    // cells in the same column
+    col = prev_cells + i*size;
+    if (j != 0) {
+        get_neighbour_counts_update(col[j-1], infected, ill, sum);
+    }
+    if (j+1 != size) {
+        get_neighbour_counts_update(col[j+1], infected, ill, sum);
+    }
+
+    // cells to the right
+    if (i+1 != segment_size) {
+        col = prev_cells + (i+1)*size;
+    } else {
+        col = cells_right;
+    }
+    if (i+1 != segment_size || world_rank+1 != world_size) {
+        if (j != 0) {
+            get_neighbour_counts_update(col[j-1], infected, ill, sum);
+        }
+        get_neighbour_counts_update(col[j], infected, ill, sum);
+        if (j+1 != size) {
+            get_neighbour_counts_update(col[j+1], infected, ill, sum);
+        }
     }
 }

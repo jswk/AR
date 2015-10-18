@@ -1,0 +1,12 @@
+#!/bin/gnuplot
+
+set terminal png size 600,600
+set output outputfile
+
+set size square
+set xrange [0:gamesize]
+set yrange [0:gamesize]
+
+set title titletext
+
+plot datafile using 1:2:3 with image
