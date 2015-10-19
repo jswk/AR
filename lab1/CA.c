@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEBUG
+/*#define DEBUG*/
 
 static int Q = 10;
 static int K1 = 2;
@@ -67,6 +67,8 @@ int main(int argc, char** argv) {
         cells[i] = 0;
     }
 
+    double start = MPI_Wtime();
+
     for (int step = 0; step < steps; step++) {
         MPI_Request reqs[4];
         MPI_Status stat;
@@ -129,6 +131,13 @@ int main(int argc, char** argv) {
         int *tmp_cells = prev_cells;
         prev_cells = cells;
         cells = tmp_cells;
+    }
+
+    double end = MPI_Wtime();
+
+    if (world_rank == 0) {
+        double elapsed = end - start;
+        fprintf(stderr, "elapsed = %lfs\n", elapsed);
     }
 
     free(cells_left);
