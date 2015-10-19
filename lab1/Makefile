@@ -2,4 +2,4 @@
 all: CA
 
 %: %.c
-	mpicc -o $@ $< -Wall
+	mpicc -std=c99 -o $@ $< -Wall
