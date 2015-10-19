@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
 
     if (world_rank == 0) {
         double elapsed = end - start;
-        fprintf(stderr, "elapsed = %lfs\n", elapsed);
+        fprintf(stdout, "%d %lfs\n", world_size, elapsed);
     }
 
     free(cells_left);
