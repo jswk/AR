@@ -1,7 +1,7 @@
 #!/bin/sh
 #PBS -q plgrid-testing
 #PBS -l walltime=0:30:00
-#PBS -l nodes=1:ppn=12
+#PBS -l nodes=2:ppn=12
 #PBS -A plgjsawicki2015b
 
 rm -rf /tmp/$USER/AR
@@ -16,8 +16,8 @@ cd /tmp/$USER/AR
 cp /people/plgjsawicki/AR/lab1/CA ./CA
 mkdir -p results
 
-for PROC in {1..12}; do
-    mpiexec -n $PROC ./CA 100 10 2&>1 | awk '{print "$PROC "$3}' >> results/proc_num
+for PROC in {1..24}; do
+    mpiexec -n $PROC ./CA 200 500 >> results/proc_num
 done
 
 cp -r /tmp/$USER/AR/results /people/plgjsawicki/AR/lab1
