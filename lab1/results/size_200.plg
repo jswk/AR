@@ -1,0 +1,20 @@
+#!/bin/gnuplot
+
+set terminal png size 800,600
+set output 'size_200_e.png'
+
+set title "Efficiency for problem size 200 and 500 steps"
+set xlabel "Processor count"
+set ylabel "Efficiency"
+set yrange [0:1]
+
+plot 'size_200.data' using 1:($3/$1) notitle
+
+set output 'size_200_s.png'
+set title "Speedup for problem size 200 and 500 steps"
+set ylabel "Speedup"
+set autoscale y
+
+f(x) = x
+
+plot 'size_200.data' using 1:3 notitle, f(x) notitle
