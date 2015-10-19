@@ -9,9 +9,9 @@ cd /tmp/$USER/AR
 
 module load plgrid/tools/mpich/3.0.4
 
-cp /people/plgjsawicki/AR/lab1/AR ./AR
+cp /people/plgjsawicki/AR/lab1/CA ./CA
 mkdir results
 
 for PROC in {1..12}; do
-    mpiexec -n $PROC ./AR 100 10 > results/proc_$PROC
+    mpiexec -n $PROC ./CA 100 10 > results/proc_$PROC
 done
