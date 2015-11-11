@@ -1,0 +1,3 @@
+[submodule "lab2/ar-pagerank"]
+	path = lab2/ar-pagerank
+	url = git@github.com:jswk/ar-pagerank.git
