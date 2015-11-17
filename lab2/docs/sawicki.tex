@@ -11,6 +11,7 @@
 \usepackage{indentfirst}
 \usepackage{icomma}
 \usepackage{booktabs}
+\usepackage{hyperref}
 
 \usepackage{listings}
 
@@ -18,7 +19,7 @@
 \usepackage[locale=FR]{siunitx}
 \sisetup{per-mode=symbol-or-fraction}
 
-\title{Spark - poszukiwanie spójnej składowej}
+\title{Spark --- poszukiwanie spójnej składowej}
 \author{Jakub Sawicki}
 \date{\today}
 
@@ -70,12 +71,82 @@ zminimalizować potrzebną komunikację.
 
 \section{Implementacja}
 
+Algorytm poszukiwania spójnych składowych \cite{ccpregel} opiera się na
+algorytmie PageRank zaimplementowanym
+w~\url{https://github.com/malawski/ar-pagerank}.
+Zrobiłem fork tego repozytorium i~dokonałem implementacji na jego podstawie.
+Jest on dostępny pod adresem \url{https://github.com/jswk/ar-pagerank}.
+
+Wprowadzona została dodatkowa komunikacja poprzez akumulator w~celu określenia,
+czy ostateczny wynik został już osiągnięty (brak zmian numerów porządkowych).
+
 \section{Wydajność}
+
+Pierwsze próby uruchamiania algorytmu dla klastrów różnej wielkości bez
+ustawionego partitionera dały czasy wykonania, które były stałe ze względu na
+wielkość klastra.
+
+\subsection{Testy dla różnych grafów}
+
+Następnie dla obiektów RDD ustawiony został HashPartitioner dzielący
+wierzchołki na tyle grup, ile zadanie otrzymało przydzielonych procesorów.
+Testy zostały przeprowadzone dla grafów web-Google, web-NotreDame oraz
+web-Stanford z~\cite{realgraphs}.
+(Graf web-BerkStan miał dużą średnicę i~pełne obliczenie zajęło by zbyt dużo czasu.)
+
+Ilość potrzebnych kroków algorytmu jest ograniczona od góry przez średnicę grafu.
+\begin{itemize}
+    \item \emph{web-Google} średnica: 21, ilość kroków: 16,
+    \item \emph{web-NotreDame} średnica: 46, ilość kroków: 25,
+    \item \emph{web-Stanford} średnica: 674, ilość kroków: 662.
+\end{itemize}
+
+Wykresy czasu obliczeń oraz efektywności dla poszczególnych grafów pokazane są
+na Rys.~\ref{fig:web-graphs}.
+
+Dla grafu web-Google zachodzi zjawisko superskalarności.
+W~przypadku, gdy obliczenia wykonywane są na pojedynczym węźle, graf nie mieści
+się w~pamięci lokalnej powodując najprawdopodobniej przeniesienie części
+pamięci do swapa.
+Ustawienie w~konfiguracji Sparka wyższych limitów pamięci nie zmienia sytuacji.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.6\textwidth]{fig/web-Google.png}
+    \includegraphics[width=.6\textwidth]{fig/web-NotreDame.png}
+    \includegraphics[width=.6\textwidth]{fig/web-Stanford.png}
+    \caption{Wykresy pokazują czas wykonania algorytmu poszukiwania spójnych
+        składowych oraz ich efektywność dla testowanych grafów.}
+    \label{fig:web-graphs}
+\end{figure}
+
+\subsection{Multiplikatywność funkcji haszującej}
+
+Zbadany został również wpływ multiplikatywności HashPartitioner na czas obliczeń.
+Na dwóch węzłach z~12 rdzeniami w~każdym uruchomione zostało zadanie dla
+grafu web-NotreDame.
+Zmieniana była ilość generowanych przez funkcję haszującą wartości.
+Przetestowane zostały wartości od 2 do 24 z~krokiem co 2.
+Wyniki zaprezentowane są na Rys.~\ref{fig:multiplicity}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.7\textwidth]{fig/web-NotreDame-2-12.png}
+    \caption{Wykres pokazuje czas obliczeń dla różnej ilości wartości
+        zwracanych przez funkcję haszującą.
+        Obliczenia wykonywane były na dwóch węzłach po 12 rdzeni.}
+    \label{fig:multiplicity}
+\end{figure}
 
 \begin{thebibliography}{9}
     \bibitem{foster}
         I.~Foster: \emph{Designing and Building Parallel Programs}
-        \texttt{http://www.mcs.anl.gov/dbpp/} dostęp 2015.10.14
+        \url{http://www.mcs.anl.gov/dbpp/} dostęp 2015.10.14
+    \bibitem{ccpregel}
+        Reza Zadeh: \emph{Lecture 8}
+        \url{http://stanford.edu/~rezab/dao/notes/lec8.pdf} dostęp 2015.11.17
+    \bibitem{realgraphs}
+        \url{https://snap.stanford.edu/data/index.html#web}
 \end{thebibliography}
 
 \end{document}

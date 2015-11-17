@@ -1,0 +1,15 @@
+#!/bin/gnuplot
+
+set terminal png size 800,600
+set output 'web-NotreDame-2-12.png'
+
+data_file = '../data/web-NotreDame-2-12.data'
+
+set title "Execution times for different hash multiplicities for web-NotreDame graph with 2 nodes with 12 cores per node"
+set xlabel "hash multiplicity"
+set ylabel "Execution time [s]"
+
+set xrange [0:26]
+set yrange [0:100]
+
+plot data_file using 1:($2/1000) ps 3 lt rgb "#ff0000" title "execution time"
