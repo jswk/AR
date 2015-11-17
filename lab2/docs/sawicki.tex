@@ -1,0 +1,81 @@
+\documentclass[a4paper; 12pt]{article}
+
+% global includes
+\usepackage[polish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{courier} %times, kurier
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{indentfirst}
+\usepackage{icomma}
+\usepackage{booktabs}
+
+\usepackage{listings}
+
+% local includes
+\usepackage[locale=FR]{siunitx}
+\sisetup{per-mode=symbol-or-fraction}
+
+\title{Spark - poszukiwanie spójnej składowej}
+\author{Jakub Sawicki}
+\date{\today}
+
+\begin{document}
+\renewcommand{\figurename}{Rys.}
+\renewcommand{\tablename}{Tab.}
+\renewcommand{\abstractname}{Abstrakt}
+
+\maketitle
+
+\section{Analiza PCAM}
+
+Analiza rozbita została na bloki: partition, communication, agglomeration oraz~mapping.~\cite{foster}
+
+\subsection{Podział}
+W~problemie CC podstawowym elementem jest wierzchołek grafu.
+Przechowuje on informację o~swoim aktualnym numerze porządkowym.
+Odbiera informacje o~numerach porządkowych sąsiadów i~uaktualnia swój, na numer
+sąsiada jeżeli ten jest mniejszy niż jego.
+
+\subsection{Komunikacja}
+Komunikaty wymieniane są pomiędzy wierzchołkami połączonymi krawędziami.
+Rozważany graf jest nieskierowany, w~skierowanym algorytm może dać różne
+rezultaty w~zależności od ułożenia kolejności wierzchołków.
+
+W~jednym kroku algorytmu każdy wierzchołek $v$ wysyła $\text{deg}(v)$ komunikatów
+do swoich sąsiadów i~tyle też komunikatów odbiera.
+W~sumie wymienianych jest więc $2\overline{\text{deg}} * n$ komunikatów,
+gdzie $n$ jest ilością wierzchołków.
+
+\subsection{Aglomeracja}
+Optymalnie było by podzielić graf na pewną liczbę składowych, które są ze sobą
+dość gęsto połączone.
+Dzięki temu większość komunikacji odbywała by się wewnątrz danej składowej.
+Pomiędzy nimi powinno być relatywnie niewiele połączeń.
+Nie jest jednak łatwo przeprowadzić takiej analizy na dużych grafach.
+
+Nieoptymalny podział może nastąpić poprzez podział wierzchołków na $m$ grup na
+podstawie funkcji hashującej.
+Wtedy jeśli średni stopień wierzchołka w~grafie wynosi $\overline{\text{deg}}$
+to mamy $s_{\text{part}} = \frac{n}{m} \overline{\text{deg}}$ komunikatów
+wymienianych przez każdą część.
+Z~tego $\frac{m-1}{m} s_{\text{part}}$ wymieniane jest z~innymi składowymi.
+
+\subsection{Mapowanie}
+Posiadając informacje o~ilości połączeń między poszczególnymi składowymi
+możliwe jest takie rozmieszczenie ich na węzłach obliczeniowych aby
+zminimalizować potrzebną komunikację.
+
+\section{Implementacja}
+
+\section{Wydajność}
+
+\begin{thebibliography}{9}
+    \bibitem{foster}
+        I.~Foster: \emph{Designing and Building Parallel Programs}
+        \texttt{http://www.mcs.anl.gov/dbpp/} dostęp 2015.10.14
+\end{thebibliography}
+
+\end{document}
