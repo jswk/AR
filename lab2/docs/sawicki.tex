@@ -86,7 +86,7 @@ Pierwsze próby uruchamiania algorytmu dla klastrów różnej wielkości bez
 ustawionego partitionera dały czasy wykonania, które były stałe ze względu na
 wielkość klastra.
 
-\subsection{Testy dla różnych grafów}
+\subsection{Testy dla różnych grafów \label{sec:tests1}}
 
 Następnie dla obiektów RDD ustawiony został HashPartitioner dzielący
 wierzchołki na tyle grup, ile zadanie otrzymało przydzielonych procesorów.
@@ -109,6 +109,7 @@ W~przypadku, gdy obliczenia wykonywane są na pojedynczym węźle, graf nie mie�
 się w~pamięci lokalnej powodując najprawdopodobniej przeniesienie części
 pamięci do swapa.
 Ustawienie w~konfiguracji Sparka wyższych limitów pamięci nie zmienia sytuacji.
+Wyjaśnienie zobacz w~\ref{sec:googleswap}.
 
 \begin{figure}
     \centering
@@ -136,6 +137,65 @@ Wyniki zaprezentowane są na Rys.~\ref{fig:multiplicity}.
         zwracanych przez funkcję haszującą.
         Obliczenia wykonywane były na dwóch węzłach po 12 rdzeni.}
     \label{fig:multiplicity}
+\end{figure}
+
+\subsection{Graf web-Google a~wykorzystanie swap \label{sec:googleswap}}
+
+Sprawdzone zostało w~trybie interaktywnym zużycie zasobów przez wykonanie
+algorytmu dla grafu web-Google.
+Zarezerwowany został jeden węzeł z~12 rdzeniami.
+
+Obserwacja logów oraz zajętości systemu wykazała, że nie używana była pamięć
+swap tylko bezpośrednio przestrzeń dyskowa.
+Widać to na podstawie logów:
+\begin{lstlisting}
+  collection.ExternalSorter: Thread 72 spilling in-memory map of 162.1 MB to disk (1 time so far)
+\end{lstlisting}
+
+Powodowało to znaczący spadek wydajności dla wykonania się algorytmu na jednym klastrze.
+
+\subsection{Wpływ poziomu równoległości na wykonanie}
+
+W~ramach sesji interaktywnej ustawiane były różne wartości zmiennej
+konfiguracyjnej \texttt{spark.default.parallelism}.
+
+Wykonanie algorytmu dla wartości 1 potwierdziło, że wykorzystywany wtedy jest
+tylko jeden rdzeń z~12.
+Ustawienie wartości 12 pozwoliło lepiej wykorzystać możliwości węzła, zajęte
+wtedy były wszystkie rdzenie.
+Podniesienie tej wartości do 36 dodatkowo pozwoliło kilka dodatkowych procent
+wydajności.
+
+Czasy wykonania algorytmu dla grafu web-NotreDame na jednym 12-rdzeniowym węźle
+prezentowały się następująco.
+\begin{itemize}
+  \item lvl 1: 120s,
+  \item lvl 12: 86s,
+  \item lvl 36: 78s.
+\end{itemize}
+
+\subsection{Ponowienie testów dla grafów}
+
+Testy z~\ref{sec:tests1} zostały powtórzone dla poziomu równoległości 36.
+Przed każdym uruchomieniem klastra w~pliku konfiguracyjnym ustawione zostały
+też wartości ilości pamięci dla workerów oraz drivera (na 8GB).
+Gdyby nie to, wartości te nie zostały by uwzględnione.
+
+Wyniki testów przedstawione zostały na Rys.~\ref{fig:web-graphs-2}.
+Tym razem z~powodzeniem udało się uruchomić algorytm również dla grafu web-BerkStan.
+W~porównaniu do Rys.~\ref{fig:web-graphs} prawie dwukrotnie zmniejszyły się
+czasy wykonania.
+Zależności efektywności pozostały natomiast podobne.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.49\textwidth]{fig/web-Google-2.png}
+    \includegraphics[width=.49\textwidth]{fig/web-NotreDame-2.png}
+    \includegraphics[width=.49\textwidth]{fig/web-Stanford-2.png}
+    \includegraphics[width=.49\textwidth]{fig/web-BerkStan-2.png}
+    \caption{Wykresy pokazują czas wykonania algorytmu poszukiwania spójnych
+        składowych oraz ich efektywność dla testowanych grafów.}
+    \label{fig:web-graphs-2}
 \end{figure}
 
 \begin{thebibliography}{9}

@@ -1,0 +1,21 @@
+#!/bin/gnuplot
+
+set terminal png size 800,600
+set output 'web-Stanford-2.png'
+
+data_file = '../data/web-Stanford-2.data'
+
+set title "Execution time and efficiency for web-Stanford graph"
+set xlabel "node count"
+set ylabel "Execution time [s]"
+set y2label "Efficiency"
+
+set y2tics
+set ytics nomirror
+
+set xrange [0:5]
+set yrange [0:3000]
+set y2range [0:1]
+
+plot data_file using 1:($2/1000) ps 3 lt rgb "#ff0000" axes x1y1 title "execution time", \
+     data_file using 1:($3/$2/$1) ps 3 lt rgb "#0000ff" axes x1y2 title "efficiency"
