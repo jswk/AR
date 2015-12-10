@@ -1,0 +1,99 @@
+\documentclass[a4paper; 12pt]{article}
+
+% global includes
+\usepackage[polish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{courier} %times, kurier
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{indentfirst}
+\usepackage{icomma}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{pgfplots}
+
+\usepackage{listings}
+
+% local includes
+\usepackage[locale=FR]{siunitx}
+\sisetup{per-mode=symbol-or-fraction}
+
+\title{Branch and bound}
+\author{Jakub Sawicki}
+\date{\today}
+
+\begin{document}
+\renewcommand{\figurename}{Rys.}
+\renewcommand{\tablename}{Tab.}
+\renewcommand{\abstractname}{Abstrakt}
+
+\maketitle
+
+\section{Analiza PCAM}
+
+Analiza rozbita została na bloki: partition, communication, agglomeration oraz~mapping.~\cite{foster}
+
+\subsection{Podział}
+Obliczenia dla każdego wierzchołka drzewa stanowić będą podstawowe zadanie.
+Takie zadanie nie zawiera w~sobie obliczeń dla dzieci danego wierzchołka.
+
+\subsection{Komunikacja}
+Każde zadanie będzie musiało otrzymać informację o~swojej pozycji w~drzewie
+obliczeń oraz informację o~najlepszym dotychczas rozwiązaniu.
+Będzie też musiało być świadome tablicy z~czasami wykonania poszczególnych
+tasków i~globalnego limitu czasu.
+
+Liście drzewa obliczeń będą też musiały przesłać informację o~swoim
+rozwiązaniu, jeżeli jest ono lepsze niż poprzednie najlepsze znalezione.
+
+\subsection{Aglomeracja}
+
+Drzewo możemy podzielić na poddrzewa o~głębokości $m$.
+$m$ powinno zostać tak dobrane, żeby narzut komunikacyjny nie był zbyt duży
+w~stosunku do obliczeń.
+Każdy liść takiego poddrzewa będzie też korzeniem kolejnego poddrzewa.
+
+Na ostatnim poziomie, jeżeli liczba tasków $n$ nie będzie wielokrotnością $m$,
+ilość poziomów poddrzewa będzie odpowiednio zredukowana.
+
+\subsection{Mapowanie}
+
+Będzie istnieć centralna kolejka, która rozdzielać będzie zadania (poddrzewa).
+Początkowo w~kolejce umieszczone zostanie tylko jedno początkowe zadanie.
+Po jego zakończeniu do kolejki trafi już większa pula zadań, które zostaną
+rozdzielone pomiędzy procesorami.
+
+Kolejka musi być priorytetowa.
+Jako pierwsze wysyłane do obliczeń muszą być zadania będące na głębszym
+poziomie, tak aby obliczenia wykonywały się mniej więcej w~porządku DFS.
+Na tym samym poziomie, zadania powinny być szeregowane wg id ostatniego taska.
+
+Kolejka taka zbierała by też od zadań informacje o~zmianie najlepszego
+rozwiązania.
+Przy przydzielaniu zadań warunek ten byłby od razu weryfikowany przez kolejkę
+(ocena każdego rozwiązania musiała by być przechowywana wraz z~informacją
+o~rozwiązaniu).
+Wtedy nawet jeśli aktualnie wykonywane by były zadania, które powinny zostać
+odcięte to po ich zakończeniu zajęte procesory będą już mogły zająć się
+lepszymi obszarami poszukiwań.
+
+Można by też postarać się zbudować z~tych kolejek kolejną strukturę drzewiastą,
+tak aby nie tworzyć jednego wąskiego gardła.
+Wszystkie procesory były by początkowo podłączone do kolejki w~korzeniu.
+Gdy powstawałyby kolejki dla poddrzew, procesory były by kierowane do
+podległych kolejek z~zachowaniem zrównoważenia obciążenia.
+Informacje o~zmianie najlepszego rozwiązania były by propagowane po drzewie od
+liści do korzenia.
+
+
+%\section{Implementacja}
+
+\begin{thebibliography}{9}
+    \bibitem{foster}
+        I.~Foster: \emph{Designing and Building Parallel Programs}
+        \url{http://www.mcs.anl.gov/dbpp/} dostęp 2015.10.14
+\end{thebibliography}
+
+\end{document}
