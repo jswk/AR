@@ -15,10 +15,10 @@ for (( IND=0; IND<$PROC; IND++ )); do
     gensort -b$SHIFT $CHUNK "in.$IND"
 done
 
-/usr/bin/time mpiexec -np $PROC $DIR/merge_file $CHUNK
+/usr/bin/time -f "$PROC $(($CHUNK*$PROC)) %e %U %S" mpiexec -np $PROC $DIR/merge_file $CHUNK
 
-for (( IND=0; IND<$PROC; IND++ )); do
-    valsort -o "out.${IND}.sum" "out.$IND" 2> /dev/null
-done
-cat out.*.sum > out.sum
-valsort -s out.sum
+#for (( IND=0; IND<$PROC; IND++ )); do
+    #valsort -o "out.${IND}.sum" "out.$IND" 2> /dev/null
+#done
+#cat out.*.sum > out.sum
+#valsort -s out.sum
