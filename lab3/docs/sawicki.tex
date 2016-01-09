@@ -13,8 +13,20 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{pgfplots}
+\pgfplotsset{
+    compat=1.12,
+    width=9cm,
+    %yticklabel={\num[round-mode=figures,round-precision=2]{\tick}},
+    y axis style/.style={
+        yticklabel style=#1,
+        ylabel style=#1,
+        y axis line style=#1,
+        ytick style=#1
+    }
+}
 
 \usepackage{listings}
+
 
 % local includes
 \usepackage[locale=FR]{siunitx}
@@ -88,7 +100,117 @@ Informacje o~zmianie najlepszego rozwiązania były by propagowane po drzewie od
 liści do korzenia.
 
 
-%\section{Implementacja}
+\section{Implementacja}
+
+Program zaimplementowany został w~pythonie.
+Do obsługi MPI wykorzystany został moduł mpi4py.
+Ze względu na niedostępność tego modułu na zeusie musiał on zostać skompilowany
+dodatkowo pociągając za sobą kompilację MPICH.
+MPICH dostępne na zeusie nie zostało skompilowane z~opcją \texttt{-fPIC} co
+uniemożliwiało dynamicznego dołączenia mpi4py.
+Oddzielna instalacja MPICH nie jest jednak w~stanie nawiązywać połączeń
+pomiędzy węzłami Zeusa - możliwa jest praca jedynie na jednym węźle (12
+rdzeni).
+
+Powstały dwie wersje, sekwencyjna~--- nie używa MPI i~szuka najlepszego
+rozwiązania wykorzystując sekwencyjny algorytm branch-and-bound.
+
+Równoległa~--- korzysta z~modułu mpi4py.
+Proces root'a zarządza jedynie komunikacją co znacząco wpływa na efektywność.
+Pozostałe procesy wykonują zadania.
+
+Obie wersje sortują na początku zadania malejąco według czasu trwania.
+W~średnim przypadku prowadzi to do szybszego znalezienia rozwiązania.
+
+
+\section{Wyniki}
+
+Wykonane zostały testy dla dwóch problemów.
+
+\subsection{Problem 1}
+
+Limit czasu: 4.
+39 zadań o~długościach od \num{0.1} do \num{3.9}.
+
+Wykres czasu wykonania i~efektywności dla różnych ilości procesorów
+przedstawiony jest na Rys.~\ref{fig:problem1}.
+Jako czas dla jednego procesora wzięty został czas wykonania wersji
+sekwencyjnej algorytmu.
+Czas wykonania wersji sekwencyjnej jest też podstawą dla efektywności innych
+problemów.
+
+Efektywność dla tych ilości procesorów utrzymuje się w~okolicach
+\SI{60}{\percent}.
+Wykazuje też dość znaczne spadki dla 8 oraz 12 procesorów.
+Dla 2 procesorów efektywność jest bardzo mała, jako że jeden procesor pełni
+funkcję zarządcy.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}
+        \pgfplotsset{xmin=0, xmax=13}
+        \begin{axis}[
+                xlabel={ilość procesorów},
+                ylabel={czas wykonania, s},
+                axis y line*=left,
+                y axis style=blue!75!black,
+        ]
+            \addplot[blue, only marks] table [x={np}, y={t}] {problem3.res};
+        \end{axis}
+        \begin{axis}[
+                axis y line*=right,
+                ylabel={efektywność},
+                y axis style=red!75!black,
+                ymin = 0,
+        ]
+            \addplot[red, only marks] table [x={np}, y={ef}] {problem3.res};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Wykres czasu wykonania i~efektywności dla problemu 1.}
+    \label{fig:problem1}
+\end{figure}
+
+\subsection{Problem 2}
+
+Został dobrany tak, aby lepiej obciążyć obliczeniowo procesory.
+Długości zadań to liczby losowe z~przedziału $(0,\,10)$.
+
+Limit czasu: 10.
+Ilość zadań: 26.
+
+Wyniki pokazane są na Rys.~\ref{fig:problem2}.
+Widoczny jest tu również spadek wydajności dla dwóch procesorów.
+Poza tym, problem jest na tyle intensywny obliczeniowo, że efektywność rośnie
+wraz z~ilością procesorów, osiągając nawet ponad \SI{120}{\percent}.
+Może to wynikać, z~innej kolejności przeszukiwania drzewa niż w~przypadku
+sekwencyjnym.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}
+        \pgfplotsset{xmin=0, xmax=13}
+        \begin{axis}[
+                xlabel={ilość procesorów},
+                ylabel={czas wykonania, s},
+                axis y line*=left,
+                y axis style=blue!75!black,
+        ]
+            \addplot[blue, only marks] table [x={np}, y={t}] {problem4.res};
+        \end{axis}
+        \begin{axis}[
+                axis y line*=right,
+                ylabel={efektywność},
+                y axis style=red!75!black,
+                ymin = 0,
+        ]
+            \addplot[red, only marks] table [x={np}, y={ef}] {problem4.res};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Wykres czasu wykonania i~efektywności dla problemu 2.}
+    \label{fig:problem2}
+\end{figure}
+
+
 
 \begin{thebibliography}{9}
     \bibitem{foster}

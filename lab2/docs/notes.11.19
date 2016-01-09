@@ -1,0 +1,21 @@
+- zbadać level of paralellism
+  jaki jest load w trybie interaktywnym
+
+  ustawienie level of parallelism na 12 spowodowało lepsze wykorzystanie węzła
+  zmiana na 36 nie spowodowała dużej zmiany, ale i tak kilka procent mniej wyszło
+
+  1: 120s
+  12: 86s
+  36: 78s
+
+- web-Google, czy uzywa swapa, tryb -I
+  collection.ExternalSorter: Thread 72 spilling in-memory map of 162.1 MB to disk (1 time so far)
+  zapisuje na dysk
+  storage.BlockManagerInfo: Removed broadcast_1_piece0 on localhost:35856 in memory (size: 2.1 KB, free: 530.0 MB)
+  tylko 512MB pamięci jednak :/
+
+  poza tym, nie reaguje na zmianę spark.executor.memory
+
+- partitioner, szukanie połączonych wierzchołków
+
+za tydzień termin ostateczny, będzie zadane kolejne zadanie
