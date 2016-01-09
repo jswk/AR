@@ -52,12 +52,6 @@ void parallel_mergesort(int myid,int *list) {
 }
 
 int main(int argc,char *argv[]) {
-    N = atoi(argv[1]);
-
-    MPI_Init(&argc,&argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-
     if (argc != 2) {
         if (myid == 0) {
             fprintf(stderr, "Usage: %s <size>\n", argv[0]);
@@ -65,7 +59,13 @@ int main(int argc,char *argv[]) {
         exit(1);
     }
 
+    MPI_Init(&argc,&argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+
+    N = atoi(argv[1]);
     n = N/nprocs;
+
     int *list = malloc(4*n*sizeof(int)); // for the chunk from the partner and temporary mergesort space
     if (list == 0) {
         fprintf(stderr, "Cannot allocate memory for buffer.");
