@@ -50,9 +50,16 @@ void parallel_mergesort(int myid,char *list) {
         bitm = 1 << (l-1);
         for (m=l-1; m>=0; m--) {
             partner = myid ^ bitm;
-            MPI_Send(list,n*RS,MPI_BYTE,partner,l*dim+m,MPI_COMM_WORLD);
-            MPI_Recv(list+n*RS,n*RS,MPI_BYTE,partner,l*dim+m,
-                    MPI_COMM_WORLD,&status);
+            // one in the pair must send the data first, as the eager transfer
+            // (without posted recv on the other side) happens only for
+            // messages <64kb which isn't the case for larger problems
+            if (myid & bitm) {
+                MPI_Send(list,n*RS,MPI_BYTE,partner,l*dim+m,MPI_COMM_WORLD);
+            }
+            MPI_Recv(list+n*RS,n*RS,MPI_BYTE,partner,l*dim+m,MPI_COMM_WORLD,&status);
+            if (!(myid & bitm)) {
+                MPI_Send(list,n*RS,MPI_BYTE,partner,l*dim+m,MPI_COMM_WORLD);
+            }
             mergesort(list,0,2*n-1,myid & bitl);
             if (myid & bitm) {
                 memcpy(list, list+n*RS, n*RS);
