@@ -1,0 +1,101 @@
+\documentclass[a4paper; 12pt]{article}
+
+% global includes
+\usepackage[polish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{courier} %times, kurier
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{indentfirst}
+\usepackage{icomma}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{pgfplots}
+\pgfplotsset{
+    compat=1.12,
+    width=9cm,
+    %yticklabel={\num[round-mode=figures,round-precision=2]{\tick}},
+    y axis style/.style={
+        yticklabel style=#1,
+        ylabel style=#1,
+        y axis line style=#1,
+        ytick style=#1
+    }
+}
+
+\usepackage{listings}
+
+
+% local includes
+\usepackage[locale=FR]{siunitx}
+\sisetup{per-mode=symbol-or-fraction}
+
+\title{Bitonic merge-sort}
+\author{Jakub Sawicki}
+\date{\today}
+
+\begin{document}
+\renewcommand{\figurename}{Rys.}
+\renewcommand{\tablename}{Tab.}
+\renewcommand{\abstractname}{Abstrakt}
+
+\maketitle
+
+\section{Algorytm}
+
+Jako podstawę pod algorytm wykorzystałem opis i~kod bitonicznego merge-sorta
+z~\cite{parallel}.
+Został on zmodyfikowany tak, aby przyjmował jako wejście rekordy wygenerowane
+przez \texttt{gensort} i~zapisywał je w~plikach weryfikowalnych przez
+\texttt{valsort}~\cite{sortalgo}.
+
+Algorytm ten oparty jest na architekturze hiper-kostki.
+Musi być uruchomiony na ilości procesorów równej potędze dwójki.
+Każdy procesor wykonuje merge-sort na swojej części danych.
+Następnie procesory wymieniają się danymi ze swoimi partnerami sortując
+powstające kawałki.
+Ta część wymaga $\frac{\log_2^2(n_p)}{2}$ iteracji, gdzie $n_p$ to ilość
+dostępnych procesorów.
+
+
+\section{Wyniki}
+
+Testy wydajnościowe zostały wykonane dla czterech wielkości danych wejściowych:
+640MB, 1280MB, 2560MB oraz 5120MB.
+Co odpowiada odpowiednio 6,4M, 12,8M, 25,6M oraz 51,2M rekordów (każdy po 100
+bajtów).
+
+Nie udało się uruchomić algorytmu dla dużych problemów i~niewielkiej ilości węzłów.
+Wynikało to z~użycia typu int, do określania wielkości alokowanego bufora,
+powodując błąd jeśli był on większy niż około 2GB.
+
+Wyniki pokazane są na Rys.~\ref{fig:results1}.
+Nie ma przyspieszenia, jeżeli obliczenia wykonywane są na pojedynczym węźle, do
+8 rdzeni.
+Dla większej ich ilości wydajność zaczyna wzrastać.
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=.5\textwidth]{runs.png}
+    \includegraphics[width=.5\textwidth]{speedup.png}
+    \includegraphics[width=.5\textwidth]{rate.png}
+    \caption{Wykresy czasu wykonania, przyspieszenia oraz tempa przetwarzania
+        danych dla różnych wielkości danych wejściowych.
+        Dane wejściowe miały wielkości 640MB, 1280MB, 2560MB oraz 5210MB.}
+    \label{fig:results1}
+\end{figure}
+
+
+
+\begin{thebibliography}{9}
+    \bibitem{parallel}
+        \emph{Divide-and-Conquer Parallelization Paradigm}
+        \url{http://cacs.usc.edu/education/cs653/02-3DC.pdf} dostęp 2016.01.14
+    \bibitem{sortalgo}
+        \emph{Sort algorithms benchmark}
+        \url{http://sortbenchmark.org/} dostęp 2016.01.14
+\end{thebibliography}
+
+\end{document}
