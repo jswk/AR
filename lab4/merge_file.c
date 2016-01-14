@@ -8,11 +8,13 @@
 #define RS 100 // record size
 #define KS 10 // key size
 
-int nprocs,dim,myid,n,N; /* Cube size, dimension, & my node ID */
+int nprocs,myid;
+unsigned int dim;
+unsigned long n, N;
 
 /* Sequential mergesort (either ascending or descending) */
-void mergesort(char *list,int left,int right,int descending) {
-    int i,j,k,t,middle;
+void mergesort(char *list,unsigned long left,unsigned long right,int descending) {
+    unsigned long i,j,k,t,middle;
     char *temp = list+2*n*RS;
     if (left < right) {
         middle = (left + right)/2;
@@ -21,13 +23,13 @@ void mergesort(char *list,int left,int right,int descending) {
         k = i = left; j = middle+1;
         if (descending) {
             while (i<=middle && j<=right) {
-                int ij = memcmp(list+RS*i, list+RS*j, KS) > 0 ? i++ : j++;
+                unsigned long ij = memcmp(list+RS*i, list+RS*j, KS) > 0 ? i++ : j++;
                 memmove(temp+(k++)*RS, list+RS*ij, RS);
                 /*temp[k++] = list[i]>list[j] ? list[i++] : list[j++];*/
             }
         } else {
             while (i<=middle && j<=right) {
-                int ij = memcmp(list+RS*i, list+RS*j, KS) < 0 ? i++ : j++;
+                unsigned long ij = memcmp(list+RS*i, list+RS*j, KS) < 0 ? i++ : j++;
                 memmove(temp+(k++)*RS, list+RS*ij, RS);
                 /*temp[k++] = list[i]<list[j] ? list[i++] : list[j++];*/
             }
@@ -41,8 +43,8 @@ void mergesort(char *list,int left,int right,int descending) {
 }
 
 /* Parallel mergesort */
-void parallel_mergesort(int myid,char *list) {
-    int l, m, bitl = 1, bitm, partner;
+void parallel_mergesort(unsigned int myid,char *list) {
+    unsigned int l, m, bitl = 1, bitm, partner;
     MPI_Status status;
     mergesort(list,0,n-1,myid & bitl);
     for (l=1; l<=dim; l++) {
@@ -89,7 +91,7 @@ int main(int argc,char *argv[]) {
         exit(1);
     }
 
-    dim = (int)(log2(nprocs));
+    dim = (unsigned int)(log2(nprocs));
 
     {
         char fname[10];
